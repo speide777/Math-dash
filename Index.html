@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Math Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --chalk-green:#1F4B3F;
+    --chalk-green-dark:#173B32;
+    --cream:#FBF7EC;
+    --wood:#8C5A3C;
+    --sun:#F4B942;
+    --sky:#3E92CC;
+    --berry:#D64550;
+    --leaf:#4E9F3D;
+    --ink:#1B2E28;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  html,body{height:100%; margin:0;}
+  body{
+    background:
+      radial-gradient(circle at 50% 0%, #2B5C4C 0%, var(--chalk-green) 55%, var(--chalk-green-dark) 100%);
+    font-family:'Nunito', sans-serif;
+    color:var(--cream);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    min-height:100vh;
+    min-height:100dvh;
+    padding:14px 26px calc(24px + env(safe-area-inset-bottom, 0px)) 26px;
+    overflow-y:auto;
+    overflow-x:hidden;
+  }
+
+  .stage{
+    width:100%;
+    max-width:720px;
+  }
+
+  /* ---------- Screens ---------- */
+  .screen{ display:none; }
+  .screen.active{ display:flex; flex-direction:column; align-items:center; }
+
+  /* ---------- Start screen ---------- */
+  #start h1{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size:clamp(38px, 8vw, 58px);
+    margin:0 0 4px 0;
+    letter-spacing:0.5px;
+    text-shadow: 2px 3px 0 rgba(0,0,0,0.25);
+  }
+  #start .sub{
+    font-size:18px;
+    font-weight:700;
+    color:#CFE8DC;
+    margin-bottom:28px;
+    text-align:center;
+  }
+  .chalk-rule{
+    width:120px; height:4px; border-radius:4px;
+    background:repeating-linear-gradient(90deg, var(--cream) 0 10px, transparent 10px 16px);
+    opacity:0.6;
+    margin:0 0 26px 0;
+  }
+  .big-btn{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:26px;
+    color:var(--ink);
+    background:var(--sun);
+    border:none;
+    border-radius:20px;
+    padding:18px 48px;
+    box-shadow:0 6px 0 #B5822A, 0 10px 18px rgba(0,0,0,0.35);
+    cursor:pointer;
+    transition:transform 0.06s ease;
+  }
+  .big-btn:active{ transform:translateY(6px); box-shadow:0 0 0 #B5822A; }
+
+  .toggle-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:26px;
+    cursor:pointer;
+  }
+  .toggle-label{
+    font-size:16px;
+    font-weight:700;
+    color:#CFE8DC;
+  }
+  .switch{
+    position:relative;
+    display:inline-block;
+    width:52px;
+    height:30px;
+    flex-shrink:0;
+  }
+  .switch input{
+    opacity:0;
+    width:0;
+    height:0;
+  }
+  .slider{
+    position:absolute;
+    inset:0;
+    background:rgba(255,255,255,0.25);
+    border-radius:30px;
+    transition:background 0.15s ease;
+  }
+  .slider::before{
+    content:"";
+    position:absolute;
+    height:24px;
+    width:24px;
+    left:3px;
+    top:3px;
+    background:#fff;
+    border-radius:50%;
+    transition:transform 0.15s ease;
+  }
+  .switch input:checked + .slider{ background:var(--leaf); }
+  .switch input:checked + .slider::before{ transform:translateX(22px); }
+
+  /* ---------- Quiz screen ---------- */
+  #quiz{ width:100%; }
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    width:100%;
+    margin-bottom:10px;
+    font-family:'Baloo 2', sans-serif;
+    font-size:18px;
+    font-weight:700;
+    color:#CFE8DC;
+  }
+  .quit-btn{
+    font-family:'Nunito', sans-serif;
+    font-size:14px;
+    font-weight:700;
+    color:#CFE8DC;
+    background:rgba(255,255,255,0.12);
+    border:none;
+    border-radius:10px;
+    padding:8px 14px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .quit-btn:active{ background:rgba(255,255,255,0.22); }
+  .progress-track{
+    flex:1;
+    height:10px;
+    background:rgba(255,255,255,0.15);
+    border-radius:8px;
+    margin:0 14px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--sun);
+    width:0%;
+    border-radius:8px;
+    transition:width 0.25s ease;
+  }
+
+  .card{
+    background:var(--cream);
+    color:var(--ink);
+    border-radius:28px;
+    width:100%;
+    padding:26px 24px 20px 24px;
+    box-shadow:0 12px 0 rgba(0,0,0,0.18), 0 20px 30px rgba(0,0,0,0.35);
+    transition:background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .card.good{ background:#DCF3DE; }
+  .card.bad{ background:#FBDCDC; }
+
+  .card.calc-mode{
+    padding:20px 24px 16px 24px;
+  }
+  .card.calc-mode .problem-row{
+    margin-bottom:14px;
+  }
+  .card.calc-mode .dots-panel{
+    margin-bottom:12px;
+  }
+  .card.calc-mode .controlrow{
+    margin-top:22px;
+  }
+
+  .dots-panel{
+    display:none;
+    align-items:flex-start;
+    justify-content:center;
+    gap:16px;
+    margin-bottom:18px;
+  }
+  .dots-panel.show{ display:flex; }
+  .dots-op{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size:22px;
+    align-self:center;
+  }
+  .dots-op.op-plus{ color:var(--leaf); }
+  .dots-op.op-minus{ color:var(--sky); }
+  .dot-group{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+  }
+  .dot-row{
+    display:flex;
+    justify-content:center;
+    gap:6px;
+  }
+  .dot{
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:var(--ink);
+    flex-shrink:0;
+  }
+  .dot.removed{
+    background:transparent;
+    border:2px solid var(--ink);
+    opacity:0.35;
+  }
+
+  .problem-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size:clamp(46px, 12vw, 70px);
+    margin-bottom:22px;
+  }
+  .op-sign{
+    font-size:1.15em;
+  }
+  .op-sign.op-plus{ color:var(--leaf); }
+  .op-sign.op-minus{ color:var(--sky); }
+  .answer-box{
+    min-width:1.6em;
+    text-align:center;
+    border-bottom:6px solid var(--wood);
+    padding:0 8px;
+    color:var(--ink);
+  }
+  .equals-group{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .equals{ color:var(--ink); }
+
+  .keypad{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:18px;
+    margin:0 4px 18px 4px;
+  }
+  .keypad.calc-mode{
+    grid-template-columns:repeat(3, 1fr);
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .keypad.calc-mode .key{
+    min-height:60px;
+    font-size:clamp(22px, 5vw, 28px);
+  }
+  .keypad.calc-mode [data-n="7"]{ order:1; }
+  .keypad.calc-mode [data-n="8"]{ order:2; }
+  .keypad.calc-mode [data-n="9"]{ order:3; }
+  .keypad.calc-mode [data-n="4"]{ order:4; }
+  .keypad.calc-mode [data-n="5"]{ order:5; }
+  .keypad.calc-mode [data-n="6"]{ order:6; }
+  .keypad.calc-mode [data-n="1"]{ order:7; }
+  .keypad.calc-mode [data-n="2"]{ order:8; }
+  .keypad.calc-mode [data-n="3"]{ order:9; }
+  .keypad.calc-mode [data-n="0"]{ order:10; grid-column:1 / -1; }
+  .key{
+    font-family:'Baloo 2', sans-serif;
+    font-size:clamp(26px, 6vw, 34px);
+    font-weight:700;
+    color:var(--ink);
+    background:#fff;
+    border:none;
+    border-radius:18px;
+    min-height:84px;
+    box-shadow:0 5px 0 #D8CFC0;
+    cursor:pointer;
+    transition:transform 0.05s ease;
+  }
+  .key:active{ transform:translateY(4px); box-shadow:0 1px 0 #D8CFC0; }
+
+  .controlrow{
+    display:grid;
+    grid-template-columns:0.8fr 1.6fr;
+    gap:18px;
+    margin:34px 4px 0 4px;
+  }
+  .ctrl{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    border:none;
+    border-radius:18px;
+    min-height:76px;
+    cursor:pointer;
+    transition:transform 0.05s ease;
+  }
+  .ctrl:active{ transform:translateY(4px); }
+  .clear{
+    font-size:22px;
+    background:#EADFCB;
+    color:var(--ink);
+    box-shadow:0 5px 0 #C9BB9E;
+  }
+  .go{
+    font-size:28px;
+    background:var(--leaf);
+    color:#fff;
+    box-shadow:0 5px 0 #35762A;
+  }
+
+  /* ---------- Results screen ---------- */
+  #results .card{ text-align:center; padding:36px 28px; }
+  #results h2{
+    font-family:'Baloo 2', sans-serif;
+    font-size:34px;
+    margin:0 0 6px 0;
+    color:var(--ink);
+  }
+  #results .stat{
+    font-size:20px;
+    font-weight:700;
+    color:var(--ink);
+    margin:4px 0;
+  }
+  #results .stat span{ color:var(--berry); }
+  #results .stat.time span{ color:var(--sky); }
+
+  .missed-section{
+    display:none;
+    text-align:left;
+    margin-top:22px;
+    padding-top:18px;
+    border-top:3px solid #E7DFCC;
+  }
+  .missed-section.show{ display:block; }
+  .missed-title{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:18px;
+    color:var(--ink);
+    margin-bottom:10px;
+    text-align:center;
+  }
+  .missed-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    max-height:240px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .missed-item{
+    display:flex;
+    align-items:baseline;
+    justify-content:center;
+    gap:10px;
+    background:#F4EFE2;
+    border-radius:12px;
+    padding:10px 14px;
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:20px;
+    color:var(--ink);
+  }
+  .missed-item .op-plus{ color:var(--leaf); }
+  .missed-item .op-minus{ color:var(--sky); }
+  .missed-item .your-answer{
+    font-family:'Nunito', sans-serif;
+    font-weight:700;
+    font-size:14px;
+    color:var(--berry);
+    white-space:nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(10, 20, 16, 0.6);
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:100;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background:var(--cream);
+    border-radius:24px;
+    padding:28px 24px;
+    max-width:340px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 20px 40px rgba(0,0,0,0.4);
+  }
+  .modal-text{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:20px;
+    color:var(--ink);
+    margin-bottom:22px;
+  }
+  .modal-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .modal-btn{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:18px;
+    border:none;
+    border-radius:16px;
+    min-height:56px;
+    cursor:pointer;
+    transition:transform 0.05s ease;
+  }
+  .modal-btn:active{ transform:translateY(3px); }
+  .modal-btn.keep-going{
+    background:var(--leaf);
+    color:#fff;
+    box-shadow:0 5px 0 #35762A;
+  }
+  .modal-btn.confirm-quit{
+    background:#EADFCB;
+    color:var(--ink);
+    box-shadow:0 5px 0 #C9BB9E;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- START SCREEN -->
+  <div id="start" class="screen active">
+    <h1>Math Dash</h1>
+    <div class="sub">15 addition + 15 subtraction &middot; go for speed!</div>
+    <div class="chalk-rule"></div>
+    <label class="toggle-row" for="dotsToggle">
+      <span class="switch">
+        <input type="checkbox" id="dotsToggle" checked>
+        <span class="slider"></span>
+      </span>
+      <span class="toggle-label">Show dot pictures for each number</span>
+    </label>
+    <label class="toggle-row" for="calcToggle">
+      <span class="switch">
+        <input type="checkbox" id="calcToggle">
+        <span class="slider"></span>
+      </span>
+      <span class="toggle-label">Use calculator-style number pad (7-8-9 / 4-5-6 / 1-2-3 / 0)</span>
+    </label>
+    <button class="big-btn" id="startBtn">Start</button>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quiz" class="screen">
+    <div class="topbar">
+      <button class="quit-btn" id="quitBtn">Quit</button>
+      <div id="counter">Problem 1 / 30</div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div id="timer">0.0s</div>
+    </div>
+    <div class="card" id="card">
+      <div class="dots-panel" id="dotsPanel">
+        <div class="dot-group" id="dotsA"></div>
+        <span class="dots-op" id="dotsOp">+</span>
+        <div class="dot-group" id="dotsB"></div>
+      </div>
+      <div class="problem-row">
+        <span id="numA">0</span>
+        <span class="op-sign" id="opSign">+</span>
+        <span id="numB">0</span>
+        <span class="equals-group">
+          <span class="equals">=</span>
+          <span class="answer-box" id="answerBox">&nbsp;</span>
+        </span>
+      </div>
+      <div class="keypad" id="keypad">
+        <button class="key" data-n="1">1</button>
+        <button class="key" data-n="2">2</button>
+        <button class="key" data-n="3">3</button>
+        <button class="key" data-n="4">4</button>
+        <button class="key" data-n="5">5</button>
+        <button class="key" data-n="6">6</button>
+        <button class="key" data-n="7">7</button>
+        <button class="key" data-n="8">8</button>
+        <button class="key" data-n="9">9</button>
+        <button class="key" data-n="0">0</button>
+      </div>
+      <div class="controlrow">
+        <button class="ctrl clear" id="clearBtn">⌫</button>
+        <button class="ctrl go" id="goBtn">✓ Go</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="results" class="screen">
+    <div class="card">
+      <h2 id="resultHeadline">Great job!</h2>
+      <div class="stat">You got <span id="scoreOut">0/30</span> correct</div>
+      <div class="stat time">Your time: <span id="timeOut">0.0s</span></div>
+      <div id="missedSection" class="missed-section">
+        <div class="missed-title">Take another look at these</div>
+        <ul id="missedList" class="missed-list"></ul>
+      </div>
+      <button class="big-btn" id="againBtn" style="margin-top:22px;">Play Again</button>
+    </div>
+  </div>
+  <!-- QUIT CONFIRMATION MODAL -->
+  <div class="modal-overlay" id="quitModal">
+    <div class="modal-box">
+      <div class="modal-text">Stop this round and go back to the start screen?</div>
+      <div class="modal-actions">
+        <button class="modal-btn keep-going" id="quitCancelBtn">Keep Going</button>
+        <button class="modal-btn confirm-quit" id="quitConfirmBtn">Quit</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const TOTAL = 30;
+  const startScreen = document.getElementById('start');
+  const quizScreen = document.getElementById('quiz');
+  const resultsScreen = document.getElementById('results');
+
+  const startBtn = document.getElementById('startBtn');
+  const againBtn = document.getElementById('againBtn');
+  const goBtn = document.getElementById('goBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const keypad = document.getElementById('keypad');
+  const dotsToggle = document.getElementById('dotsToggle');
+  const dotsPanel = document.getElementById('dotsPanel');
+  const dotsA = document.getElementById('dotsA');
+  const dotsB = document.getElementById('dotsB');
+  const dotsOp = document.getElementById('dotsOp');
+  const quitBtn = document.getElementById('quitBtn');
+  const calcToggle = document.getElementById('calcToggle');
+  const quitModal = document.getElementById('quitModal');
+  const quitCancelBtn = document.getElementById('quitCancelBtn');
+  const quitConfirmBtn = document.getElementById('quitConfirmBtn');
+
+  const numA = document.getElementById('numA');
+  const numB = document.getElementById('numB');
+  const opSign = document.getElementById('opSign');
+  const answerBox = document.getElementById('answerBox');
+  const card = document.getElementById('card');
+  const counter = document.getElementById('counter');
+  const progressFill = document.getElementById('progressFill');
+  const timerEl = document.getElementById('timer');
+  const scoreOut = document.getElementById('scoreOut');
+  const timeOut = document.getElementById('timeOut');
+  const resultHeadline = document.getElementById('resultHeadline');
+  const missedSection = document.getElementById('missedSection');
+  const missedList = document.getElementById('missedList');
+
+  let problems = [];
+  let idx = 0;
+  let score = 0;
+  let missed = [];
+  let input = '';
+  let dotsEnabled = true;
+  let startTime = 0;
+  let timerHandle = null;
+  let locked = false; // true while showing right/wrong flash
+
+  function randInt(min, max){
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function shuffle(arr){
+    for(let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function makeAddition(){
+    // a, b >= 1 so no zeros appear anywhere in the sentence; sum stays <= 20
+    const a = randInt(1, 19);
+    const b = randInt(1, 20 - a);
+    return { type:'+', a, b, answer:a + b };
+  }
+
+  function makeSubtraction(){
+    // a >= 2 so there's room for b >= 1 and a positive, non-zero answer
+    const a = randInt(2, 20);
+    const b = randInt(1, a - 1);
+    return { type:'-', a, b, answer:a - b };
+  }
+
+  function buildProblemSet(){
+    const set = [];
+    for(let i = 0; i < 15; i++) set.push(makeAddition());
+    for(let i = 0; i < 15; i++) set.push(makeSubtraction());
+    return shuffle(set);
+  }
+
+  function showScreen(el){
+    [startScreen, quizScreen, resultsScreen].forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function startTimer(){
+    startTime = performance.now();
+    timerHandle = setInterval(() => {
+      const elapsed = (performance.now() - startTime) / 1000;
+      timerEl.textContent = elapsed.toFixed(1) + 's';
+    }, 100);
+  }
+
+  function stopTimer(){
+    clearInterval(timerHandle);
+    return (performance.now() - startTime) / 1000;
+  }
+
+  function fillDots(container, n, removedCount){
+    removedCount = removedCount || 0;
+    container.innerHTML = '';
+    const rowCount = Math.floor(n / 2);
+    const hasExtra = n % 2 === 1;
+    const rowCounts = rowCount > 0 ? [rowCount, rowCount] : [];
+    if(hasExtra) rowCounts.push(1);
+
+    let placed = 0;
+    const firstRemovedIndex = n - removedCount;
+    rowCounts.forEach(count => {
+      const row = document.createElement('div');
+      row.className = 'dot-row';
+      for(let i = 0; i < count; i++){
+        const d = document.createElement('span');
+        d.className = 'dot' + (placed >= firstRemovedIndex ? ' removed' : '');
+        row.appendChild(d);
+        placed++;
+      }
+      container.appendChild(row);
+    });
+  }
+
+  function loadProblem(){
+    input = '';
+    answerBox.innerHTML = '&nbsp;';
+    card.classList.remove('good', 'bad');
+    const p = problems[idx];
+    numA.textContent = p.a;
+    numB.textContent = p.b;
+    opSign.textContent = p.type;
+    opSign.classList.remove('op-plus', 'op-minus');
+    opSign.classList.add(p.type === '+' ? 'op-plus' : 'op-minus');
+    counter.textContent = 'Problem ' + (idx + 1) + ' / ' + TOTAL;
+    progressFill.style.width = ((idx) / TOTAL * 100) + '%';
+    locked = false;
+
+    if(dotsEnabled){
+      if(p.type === '+'){
+        fillDots(dotsA, p.a, 0);
+        fillDots(dotsB, p.b, 0);
+        dotsB.style.display = '';
+        dotsOp.style.display = '';
+        dotsOp.textContent = '+';
+        dotsOp.classList.remove('op-minus');
+        dotsOp.classList.add('op-plus');
+      } else {
+        fillDots(dotsA, p.a, p.b);
+        dotsB.style.display = 'none';
+        dotsOp.style.display = 'none';
+      }
+      dotsPanel.classList.add('show');
+    } else {
+      dotsPanel.classList.remove('show');
+    }
+  }
+
+  function updateAnswerDisplay(){
+    answerBox.textContent = input.length ? input : '\u00A0';
+  }
+
+  function pressDigit(d){
+    if(locked) return;
+    if(input.length >= 2) return; // require explicit backspace instead of silently dropping the first digit
+    input += d;
+    updateAnswerDisplay();
+  }
+
+  function pressClear(){
+    if(locked) return;
+    input = input.slice(0, -1);
+    updateAnswerDisplay();
+  }
+
+  function pressGo(){
+    if(locked) return;
+    if(input.length === 0) return;
+    locked = true;
+    const p = problems[idx];
+    const correct = parseInt(input, 10) === p.answer;
+    if(correct){
+      score++;
+      card.classList.add('good');
+    } else {
+      card.classList.add('bad');
+      missed.push({ a:p.a, b:p.b, type:p.type, answer:p.answer, given:input });
+    }
+    setTimeout(() => {
+      idx++;
+      if(idx >= TOTAL){
+        finish();
+      } else {
+        loadProblem();
+      }
+    }, 320);
+  }
+
+  function finish(){
+    progressFill.style.width = '100%';
+    const totalTime = stopTimer();
+    scoreOut.textContent = score + '/' + TOTAL;
+    timeOut.textContent = totalTime.toFixed(1) + 's';
+    resultHeadline.textContent = score === TOTAL ? 'Perfect score!' : 'Great job!';
+
+    missedList.innerHTML = '';
+    if(missed.length > 0){
+      missed.forEach(m => {
+        const li = document.createElement('li');
+        li.className = 'missed-item';
+        const opClass = m.type === '+' ? 'op-plus' : 'op-minus';
+        li.innerHTML =
+          m.a + ' <span class="' + opClass + '">' + m.type + '</span> ' + m.b +
+          ' = ' + m.answer +
+          '<span class="your-answer">you wrote ' + m.given + '</span>';
+        missedList.appendChild(li);
+      });
+      missedSection.classList.add('show');
+    } else {
+      missedSection.classList.remove('show');
+    }
+
+    showScreen(resultsScreen);
+  }
+
+  function begin(){
+    problems = buildProblemSet();
+    idx = 0;
+    score = 0;
+    missed = [];
+    dotsEnabled = dotsToggle.checked;
+    keypad.classList.toggle('calc-mode', calcToggle.checked);
+    card.classList.toggle('calc-mode', calcToggle.checked);
+    showScreen(quizScreen);
+    loadProblem();
+    startTimer();
+  }
+
+  startBtn.addEventListener('click', begin);
+  againBtn.addEventListener('click', begin);
+  goBtn.addEventListener('click', pressGo);
+  clearBtn.addEventListener('click', pressClear);
+  quitBtn.addEventListener('click', () => {
+    quitModal.classList.add('show');
+  });
+  quitCancelBtn.addEventListener('click', () => {
+    quitModal.classList.remove('show');
+  });
+  quitConfirmBtn.addEventListener('click', () => {
+    quitModal.classList.remove('show');
+    clearInterval(timerHandle);
+    showScreen(startScreen);
+  });
+  keypad.addEventListener('click', (e) => {
+    const btn = e.target.closest('.key');
+    if(!btn) return;
+    pressDigit(btn.dataset.n);
+  });
+
+  // Optional keyboard support (in addition to click, harmless if unused)
+  document.addEventListener('keydown', (e) => {
+    if(!quizScreen.classList.contains('active')) return;
+    if(e.key >= '0' && e.key <= '9') pressDigit(e.key);
+    else if(e.key === 'Backspace') pressClear();
+    else if(e.key === 'Enter') pressGo();
+  });
+})();
+</script>
+</body>
+</html>
