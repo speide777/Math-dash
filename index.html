@@ -6,6 +6,7 @@
 <title>Math Dash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
   :root{
     --chalk-green:#1F4B3F;
@@ -125,6 +126,96 @@
   }
   .switch input:checked + .slider{ background:var(--leaf); }
   .switch input:checked + .slider::before{ transform:translateX(22px); }
+
+  .id-section{
+    width:100%;
+    max-width:340px;
+    margin-bottom:24px;
+  }
+  .id-input{
+    width:100%;
+    font-family:'Nunito', sans-serif;
+    font-size:18px;
+    font-weight:700;
+    color:var(--ink);
+    background:#fff;
+    border:none;
+    border-radius:14px;
+    padding:14px 16px;
+    text-align:center;
+    margin-bottom:10px;
+  }
+  .id-input::placeholder{ color:#9AA39C; font-weight:600; }
+  .scan-btn{
+    width:100%;
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:16px;
+    color:#fff;
+    background:var(--sky);
+    border:none;
+    border-radius:14px;
+    padding:12px 0;
+    cursor:pointer;
+  }
+  .scan-btn:active{ transform:translateY(2px); }
+  .id-warning{
+    display:none;
+    color:#FFE1A8;
+    font-weight:700;
+    font-size:14px;
+    margin-top:8px;
+    text-align:center;
+  }
+  .id-warning.show{ display:block; }
+
+  .download-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:18px;
+  }
+  .records-info{
+    font-size:14px;
+    font-weight:700;
+    color:#CFE8DC;
+  }
+  .download-btn{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    color:var(--ink);
+    background:var(--sun);
+    border:none;
+    border-radius:12px;
+    padding:10px 18px;
+    box-shadow:0 4px 0 #B5822A;
+    cursor:pointer;
+  }
+  .download-btn:disabled{
+    opacity:0.4;
+    box-shadow:none;
+    cursor:default;
+  }
+
+  .qr-box{ max-width:360px; }
+  #qrVideo{
+    width:100%;
+    max-height:260px;
+    object-fit:cover;
+    background:#000;
+    border-radius:16px;
+    margin-bottom:14px;
+  }
+  .qr-status{
+    font-family:'Nunito', sans-serif;
+    font-weight:700;
+    font-size:14px;
+    color:var(--ink);
+    margin-bottom:16px;
+  }
 
   /* ---------- Quiz screen ---------- */
   #quiz{ width:100%; }
@@ -397,6 +488,31 @@
     white-space:nowrap;
   }
 
+  .range-row{
+    display:flex;
+    gap:12px;
+    width:100%;
+    max-width:340px;
+    margin-bottom:22px;
+  }
+  .range-btn{
+    flex:1;
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:16px;
+    padding:12px 0;
+    border-radius:14px;
+    border:2px solid rgba(255,255,255,0.3);
+    background:transparent;
+    color:var(--cream);
+    cursor:pointer;
+  }
+  .range-btn.active{
+    background:var(--sun);
+    color:var(--ink);
+    border-color:var(--sun);
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
   }
@@ -464,6 +580,18 @@
     <h1>Math Dash</h1>
     <div class="sub">15 addition + 15 subtraction &middot; go for speed!</div>
     <div class="chalk-rule"></div>
+
+    <div class="id-section">
+      <input type="text" id="studentIdInput" class="id-input" placeholder="Type name or student ID" autocomplete="off">
+      <button class="scan-btn" id="scanQrBtn">📷 Scan QR Code</button>
+      <div class="id-warning" id="idWarning">Type a name or ID (or scan a code) first.</div>
+    </div>
+
+    <div class="range-row" id="rangeRow">
+      <button type="button" class="range-btn" data-range="10">Below 10</button>
+      <button type="button" class="range-btn active" data-range="20">Below 20</button>
+    </div>
+
     <label class="toggle-row" for="dotsToggle">
       <span class="switch">
         <input type="checkbox" id="dotsToggle" checked>
@@ -479,6 +607,11 @@
       <span class="toggle-label">Use calculator-style number pad (7-8-9 / 4-5-6 / 1-2-3 / 0)</span>
     </label>
     <button class="big-btn" id="startBtn">Start</button>
+
+    <div class="download-row">
+      <span class="records-info" id="recordsInfo">0 results saved</span>
+      <button class="download-btn" id="downloadBtn">Download CSV</button>
+    </div>
   </div>
 
   <!-- QUIZ SCREEN -->
@@ -533,7 +666,7 @@
         <div class="missed-title">Take another look at these</div>
         <ul id="missedList" class="missed-list"></ul>
       </div>
-      <button class="big-btn" id="againBtn" style="margin-top:22px;">Play Again</button>
+      <button class="big-btn" id="againBtn" style="margin-top:22px;">Next Student</button>
     </div>
   </div>
   <!-- QUIT CONFIRMATION MODAL -->
@@ -544,6 +677,17 @@
         <button class="modal-btn keep-going" id="quitCancelBtn">Keep Going</button>
         <button class="modal-btn confirm-quit" id="quitConfirmBtn">Quit</button>
       </div>
+    </div>
+  </div>
+
+  <!-- QR SCANNER MODAL -->
+  <div class="modal-overlay" id="qrModal">
+    <div class="modal-box qr-box">
+      <div class="modal-text">Scan the student's QR code</div>
+      <video id="qrVideo" playsinline muted></video>
+      <canvas id="qrCanvas" style="display:none;"></canvas>
+      <div class="qr-status" id="qrStatus">Point the camera at the code...</div>
+      <button class="modal-btn confirm-quit" id="qrCloseBtn" style="width:100%;">Cancel</button>
     </div>
   </div>
 
@@ -571,6 +715,17 @@
   const quitModal = document.getElementById('quitModal');
   const quitCancelBtn = document.getElementById('quitCancelBtn');
   const quitConfirmBtn = document.getElementById('quitConfirmBtn');
+  const studentIdInput = document.getElementById('studentIdInput');
+  const idWarning = document.getElementById('idWarning');
+  const scanQrBtn = document.getElementById('scanQrBtn');
+  const qrModal = document.getElementById('qrModal');
+  const qrVideo = document.getElementById('qrVideo');
+  const qrCanvas = document.getElementById('qrCanvas');
+  const qrStatus = document.getElementById('qrStatus');
+  const qrCloseBtn = document.getElementById('qrCloseBtn');
+  const recordsInfo = document.getElementById('recordsInfo');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const rangeButtons = document.querySelectorAll('.range-btn');
 
   const numA = document.getElementById('numA');
   const numB = document.getElementById('numB');
@@ -590,11 +745,118 @@
   let idx = 0;
   let score = 0;
   let missed = [];
+  let currentStudentId = '';
+  let qrStream = null;
+  let qrScanning = false;
+  let selectedRange = 20;
   let input = '';
   let dotsEnabled = true;
   let startTime = 0;
   let timerHandle = null;
   let locked = false; // true while showing right/wrong flash
+
+  const RESULTS_KEY = 'mathDashResults_v1';
+
+  function loadResults(){
+    try{
+      const raw = localStorage.getItem(RESULTS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e){
+      return [];
+    }
+  }
+
+  function saveResults(records){
+    try{
+      localStorage.setItem(RESULTS_KEY, JSON.stringify(records));
+    } catch(e){
+      // storage unavailable (private browsing, disabled storage, etc.) - fail quietly
+    }
+  }
+
+  function updateRecordsInfo(){
+    const records = loadResults();
+    recordsInfo.textContent = records.length + (records.length === 1 ? ' result saved' : ' results saved');
+    downloadBtn.disabled = records.length === 0;
+  }
+
+  function csvEscape(value){
+    const s = value === null || value === undefined ? '' : String(value);
+    if(/[",\n\r]/.test(s)){
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  function downloadResultsCsv(){
+    const records = loadResults();
+    if(records.length === 0) return;
+    const header = ['Student ID', 'Date', 'Time of Day', 'Score', 'Total', 'Percent', 'Time Taken (s)', 'Missed Problems'];
+    const rows = records.map(r => [
+      r.studentId, r.date, r.timeOfDay, r.score, r.total,
+      Math.round((r.score / r.total) * 100) + '%',
+      r.timeSeconds.toFixed(1),
+      r.missedSummary
+    ]);
+    const csv = [header, ...rows].map(row => row.map(csvEscape).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'math-dash-results-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function stopQrScanner(){
+    qrScanning = false;
+    qrModal.classList.remove('show');
+    if(qrStream){
+      qrStream.getTracks().forEach(track => track.stop());
+      qrStream = null;
+    }
+  }
+
+  function tickQrScanner(){
+    if(!qrScanning) return;
+    if(qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA && typeof jsQR === 'function'){
+      qrCanvas.width = qrVideo.videoWidth;
+      qrCanvas.height = qrVideo.videoHeight;
+      const ctx = qrCanvas.getContext('2d');
+      ctx.drawImage(qrVideo, 0, 0, qrCanvas.width, qrCanvas.height);
+      const imageData = ctx.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if(code && code.data){
+        studentIdInput.value = code.data;
+        idWarning.classList.remove('show');
+        stopQrScanner();
+        return;
+      }
+    }
+    requestAnimationFrame(tickQrScanner);
+  }
+
+  function startQrScanner(){
+    qrStatus.textContent = 'Point the camera at the code...';
+    qrModal.classList.add('show');
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      qrStatus.textContent = 'Camera access is not available on this browser.';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => {
+        qrStream = stream;
+        qrVideo.srcObject = stream;
+        qrVideo.play();
+        qrScanning = true;
+        requestAnimationFrame(tickQrScanner);
+      })
+      .catch(err => {
+        qrStatus.textContent = 'Could not access the camera. Check camera permissions and try again.';
+      });
+  }
 
   function randInt(min, max){
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -608,24 +870,24 @@
     return arr;
   }
 
-  function makeAddition(){
-    // a, b >= 1 so no zeros appear anywhere in the sentence; sum stays <= 20
-    const a = randInt(1, 19);
-    const b = randInt(1, 20 - a);
+  function makeAddition(maxTotal){
+    // a, b >= 1 so no zeros appear anywhere in the sentence; sum stays <= maxTotal
+    const a = randInt(1, maxTotal - 1);
+    const b = randInt(1, maxTotal - a);
     return { type:'+', a, b, answer:a + b };
   }
 
-  function makeSubtraction(){
+  function makeSubtraction(maxTotal){
     // a >= 2 so there's room for b >= 1 and a positive, non-zero answer
-    const a = randInt(2, 20);
+    const a = randInt(2, maxTotal);
     const b = randInt(1, a - 1);
     return { type:'-', a, b, answer:a - b };
   }
 
-  function buildProblemSet(){
+  function buildProblemSet(maxTotal){
     const set = [];
-    for(let i = 0; i < 15; i++) set.push(makeAddition());
-    for(let i = 0; i < 15; i++) set.push(makeSubtraction());
+    for(let i = 0; i < 15; i++) set.push(makeAddition(maxTotal));
+    for(let i = 0; i < 15; i++) set.push(makeSubtraction(maxTotal));
     return shuffle(set);
   }
 
@@ -768,11 +1030,39 @@
       missedSection.classList.remove('show');
     }
 
+    const now = new Date();
+    const record = {
+      studentId: currentStudentId || 'Unknown',
+      date: now.toLocaleDateString(),
+      timeOfDay: now.toLocaleTimeString(),
+      score: score,
+      total: TOTAL,
+      timeSeconds: totalTime,
+      missedSummary: missed.map(m => (m.a + ' ' + m.type + ' ' + m.b + ' = ' + m.answer + ' (wrote ' + m.given + ')')).join('; ')
+    };
+    const records = loadResults();
+    records.push(record);
+    saveResults(records);
+
     showScreen(resultsScreen);
   }
 
+  function backToStart(){
+    studentIdInput.value = '';
+    idWarning.classList.remove('show');
+    updateRecordsInfo();
+    showScreen(startScreen);
+  }
+
   function begin(){
-    problems = buildProblemSet();
+    const idVal = studentIdInput.value.trim();
+    if(!idVal){
+      idWarning.classList.add('show');
+      return;
+    }
+    idWarning.classList.remove('show');
+    currentStudentId = idVal;
+    problems = buildProblemSet(selectedRange);
     idx = 0;
     score = 0;
     missed = [];
@@ -785,7 +1075,7 @@
   }
 
   startBtn.addEventListener('click', begin);
-  againBtn.addEventListener('click', begin);
+  againBtn.addEventListener('click', backToStart);
   goBtn.addEventListener('click', pressGo);
   clearBtn.addEventListener('click', pressClear);
   quitBtn.addEventListener('click', () => {
@@ -797,13 +1087,25 @@
   quitConfirmBtn.addEventListener('click', () => {
     quitModal.classList.remove('show');
     clearInterval(timerHandle);
-    showScreen(startScreen);
+    backToStart();
+  });
+  scanQrBtn.addEventListener('click', startQrScanner);
+  qrCloseBtn.addEventListener('click', stopQrScanner);
+  downloadBtn.addEventListener('click', downloadResultsCsv);
+  rangeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      rangeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedRange = parseInt(btn.dataset.range, 10);
+    });
   });
   keypad.addEventListener('click', (e) => {
     const btn = e.target.closest('.key');
     if(!btn) return;
     pressDigit(btn.dataset.n);
   });
+
+  updateRecordsInfo();
 
   // Optional keyboard support (in addition to click, harmless if unused)
   document.addEventListener('keydown', (e) => {
