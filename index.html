@@ -587,6 +587,14 @@
       <div class="id-warning" id="idWarning">Type a name or ID (or scan a code) first.</div>
     </div>
 
+    <label class="toggle-row" for="rememberToggle">
+      <span class="switch">
+        <input type="checkbox" id="rememberToggle">
+        <span class="slider"></span>
+      </span>
+      <span class="toggle-label">Remember my name (individual practice)</span>
+    </label>
+
     <div class="range-row" id="rangeRow">
       <button type="button" class="range-btn" data-range="10">Below 10</button>
       <button type="button" class="range-btn active" data-range="20">Below 20</button>
@@ -594,7 +602,7 @@
 
     <label class="toggle-row" for="dotsToggle">
       <span class="switch">
-        <input type="checkbox" id="dotsToggle" checked>
+        <input type="checkbox" id="dotsToggle">
         <span class="slider"></span>
       </span>
       <span class="toggle-label">Show dot pictures for each number</span>
@@ -726,6 +734,7 @@
   const recordsInfo = document.getElementById('recordsInfo');
   const downloadBtn = document.getElementById('downloadBtn');
   const rangeButtons = document.querySelectorAll('.range-btn');
+  const rememberToggle = document.getElementById('rememberToggle');
 
   const numA = document.getElementById('numA');
   const numB = document.getElementById('numB');
@@ -750,12 +759,29 @@
   let qrScanning = false;
   let selectedRange = 20;
   let input = '';
-  let dotsEnabled = true;
+  let dotsEnabled = false;
   let startTime = 0;
   let timerHandle = null;
   let locked = false; // true while showing right/wrong flash
 
   const RESULTS_KEY = 'mathDashResults_v1';
+  const LAST_ID_KEY = 'mathDashLastId_v1';
+
+  function loadLastId(){
+    try{
+      return localStorage.getItem(LAST_ID_KEY) || '';
+    } catch(e){
+      return '';
+    }
+  }
+
+  function saveLastId(id){
+    try{
+      localStorage.setItem(LAST_ID_KEY, id);
+    } catch(e){
+      // storage unavailable - fail quietly
+    }
+  }
 
   function loadResults(){
     try{
@@ -1048,7 +1074,7 @@
   }
 
   function backToStart(){
-    studentIdInput.value = '';
+    studentIdInput.value = rememberToggle.checked ? loadLastId() : '';
     idWarning.classList.remove('show');
     updateRecordsInfo();
     showScreen(startScreen);
@@ -1062,6 +1088,9 @@
     }
     idWarning.classList.remove('show');
     currentStudentId = idVal;
+    if(rememberToggle.checked){
+      saveLastId(idVal);
+    }
     problems = buildProblemSet(selectedRange);
     idx = 0;
     score = 0;
@@ -1106,6 +1135,7 @@
   });
 
   updateRecordsInfo();
+  studentIdInput.value = rememberToggle.checked ? loadLastId() : '';
 
   // Optional keyboard support (in addition to click, harmless if unused)
   document.addEventListener('keydown', (e) => {
